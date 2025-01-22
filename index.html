@@ -1,0 +1,297 @@
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let fecha = new Date(); // Fecha actual
+            const mesTexto = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+            const diasSemana = ["LU", "MA", "MI", "JU", "VI", "SA", "DO"];
+            
+            // Días festivos por mes
+            const diasFestivos = {
+                0: [1, 6, 25],  // Enero
+                1: [],        // Febrero
+                2: [24],        // Marzo
+                3: [17,18],        // Abril
+                4: [1],         // Mayo
+                5: [2, 23, 30],        // Junio
+                6: [20],         // Julio
+                7: [7, 18],        // Agosto
+                8: [15],        // Septiembre
+                9: [13],        // Octubre
+                10: [3, 17],        // Noviembre
+                11: [8, 25]         // Diciembre
+            };
+
+            const mesElemento = document.getElementById('mes');
+            const diasElemento = document.getElementById('dias');
+            const modal = document.getElementById('modal');
+            const modalFecha = document.getElementById('modal-fecha');
+            const modalInput = document.getElementById('modal-input');
+            const modalGuardar = document.getElementById('modal-guardar');
+            const modalCerrar = document.getElementById('modal-cerrar');
+            const recordatoriosElemento = document.getElementById('recordatorios');
+            const tablaRecordatorios = document.getElementById('tabla-recordatorios');
+
+            let recordatorios = cargarRecordatorios();
+
+            // Función para cargar los recordatorios desde el localStorage
+            function cargarRecordatorios() {
+                const recordatoriosGuardados = localStorage.getItem('recordatorios');
+                return recordatoriosGuardados ? JSON.parse(recordatoriosGuardados) : {};
+            }
+
+            // Función para guardar los recordatorios en el localStorage
+            function guardarRecordatorios() {
+                localStorage.setItem('recordatorios', JSON.stringify(recordatorios));
+            }
+
+            // Función para generar el calendario
+            function generarCalendario() {
+                let primerDiaDelMes = new Date(fecha.getFullYear(), fecha.getMonth(), 1).getDay();
+
+                // Ajustar el primer día para que comience desde lunes (0 = lunes, 6 = domingo)
+                primerDiaDelMes = primerDiaDelMes === 0 ? 6 : primerDiaDelMes - 1;
+
+                let diasEnMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+
+                // Mostrar el mes y año
+                mesElemento.innerText = `${mesTexto[fecha.getMonth()]} de ${fecha.getFullYear()}`;
+
+                // Limpiar el contenido anterior
+                diasElemento.innerHTML = '';
+
+                // Agregar los días de la semana
+                diasSemana.forEach(dia => {
+                    let diaSemana = document.createElement('div');
+                    diaSemana.classList.add('text-gray-400', 'text-center');
+                    diaSemana.innerText = dia;
+                    diasElemento.appendChild(diaSemana);
+                });
+
+                // Agregar los días del mes
+                for (let i = 0; i < primerDiaDelMes; i++) {
+                    let vacio = document.createElement('div');
+                    vacio.classList.add('text-gray-400', 'text-center');
+                    diasElemento.appendChild(vacio);
+                }
+
+                for (let i = 1; i <= diasEnMes; i++) {
+                    let dia = document.createElement('div');
+                    dia.classList.add('text-gray-400', 'text-center', 'rounded-full', 'w-8', 'h-8', 'flex', 'items-center', 'justify-center', 'cursor-pointer');
+                    dia.innerText = i;
+
+                    // Resaltar días festivos
+                    if (diasFestivos[fecha.getMonth()] && diasFestivos[fecha.getMonth()].includes(i)) {
+                        dia.classList.add('bg-red-500', 'text-white');
+                    }
+
+                    // Añadir evento para abrir el modal
+                    dia.addEventListener('click', function () {
+                        modalFecha.innerText = `${i} de ${mesTexto[fecha.getMonth()]} de ${fecha.getFullYear()}`;
+                        modal.classList.remove('hidden');
+                        mostrarRecordatorios(i);
+                    });
+
+                    // Añadir identificador a los días con recordatorios
+                    const fechaClave = `${i}-${fecha.getMonth()}-${fecha.getFullYear()}`;
+                    if (recordatorios[fechaClave] && recordatorios[fechaClave].length > 0) {
+                        dia.classList.add('bg-blue-500', 'text-white');
+                    }
+
+                    diasElemento.appendChild(dia);
+                }
+            }
+
+            // Mostrar recordatorios
+            function mostrarRecordatorios(dia) {
+                const fechaClave = `${dia}-${fecha.getMonth()}-${fecha.getFullYear()}`;
+                const recordatoriosDelDia = recordatorios[fechaClave] || [];
+                recordatoriosElemento.innerHTML = '';
+                recordatoriosDelDia.forEach((recordatorio, index) => {
+                    const li = document.createElement('li');
+                    li.classList.add('text-white', 'flex', 'justify-between', 'items-center');
+                    li.innerHTML = ` 
+                        <div class="flex justify-between items-center w-full bg-gray-700 p-2 rounded-lg">
+                            <span>${recordatorio}</span>
+                            <button class="text-red-500 focus:outline-none" aria-label="Eliminar recordatorio" data-index="${index}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    recordatoriosElemento.appendChild(li);
+                });
+
+                // Añadir eventos para eliminar recordatorios
+                document.querySelectorAll('#recordatorios button').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const index = this.getAttribute('data-index');
+                        const fechaClave = `${dia}-${fecha.getMonth()}-${fecha.getFullYear()}`;
+                        recordatorios[fechaClave].splice(index, 1);
+                        guardarRecordatorios(); // Actualizar el localStorage
+                        mostrarRecordatorios(dia);
+                        generarCalendario(); // Actualizar el calendario
+                    });
+                });
+            }
+
+            // Mostrar tabla con todos los recordatorios
+            function mostrarTablaRecordatorios() {
+                tablaRecordatorios.innerHTML = ''; // Limpiar tabla existente
+
+                Object.keys(recordatorios).forEach(fechaClave => {
+                    const recordatoriosDelDia = recordatorios[fechaClave];
+                    const [dia, mes, anio] = fechaClave.split('-');
+                    recordatoriosDelDia.forEach(recordatorio => {
+                        const row = document.createElement('tr');
+                        row.classList.add('border-b', 'border-gray-600');
+
+                        row.innerHTML = `
+                            <td class="px-4 py-2 text-white">${dia}</td>
+                            <td class="px-4 py-2 text-white">${mesTexto[parseInt(mes)]}</td>
+                            <td class="px-4 py-2 text-white">${recordatorio}</td>
+                        `;
+
+                        tablaRecordatorios.appendChild(row);
+                    });
+                });
+            }
+
+            // Cambiar al mes siguiente
+            document.getElementById('mes-siguiente').addEventListener('click', function () {
+                fecha.setMonth(fecha.getMonth() + 1);
+                generarCalendario();
+            });
+
+            // Cambiar al mes anterior
+            document.getElementById('mes-anterior').addEventListener('click', function () {
+                fecha.setMonth(fecha.getMonth() - 1);
+                generarCalendario();
+            });
+
+            // Inicializar el calendario y la tabla
+            generarCalendario();
+            mostrarTablaRecordatorios();
+
+            // Cerrar el modal
+            modalCerrar.addEventListener('click', function () {
+                modal.classList.add('hidden');
+            });
+
+            // Guardar recordatorio con validación para no agregar vacíos
+            modalGuardar.addEventListener('click', function () {
+                const dia = modalFecha.innerText.split(' ')[0];
+                const fechaClave = `${dia}-${fecha.getMonth()}-${fecha.getFullYear()}`;
+                const nuevoRecordatorio = modalInput.value.trim();
+
+                if (nuevoRecordatorio === '') {
+                    alert("El recordatorio no puede estar vacío");
+                    return;
+                }
+
+                if (!recordatorios[fechaClave]) {
+                    recordatorios[fechaClave] = [];
+                }
+                recordatorios[fechaClave].push(nuevoRecordatorio);
+                modalInput.value = '';
+                guardarRecordatorios(); // Guardar en localStorage
+                mostrarRecordatorios(dia);
+                mostrarTablaRecordatorios(); // Actualizar la tabla
+                generarCalendario(); // Actualizar el calendario
+            });
+        });
+    </script>
+</head>
+
+<body class="bg-gray-600 flex justify-center h-screen">
+    <div class="relative w-full md:max-w-sm">
+        <!-- Título y Fecha Actual -->
+        <div class="text-center mb-4">
+            <p class="text-lg text-gray-300 font-semibold">
+                Calendario Recordatorios
+            </p>
+            <!-- Día y Fecha actuales -->
+            <p id="fecha-actual" class="text-sm text-gray-300"></p>
+        </div>
+
+        <!-- Calendario Principal -->
+        <div class="bg-gray-700 rounded-lg shadow-lg p-4">
+            <!-- Año y Mes -->
+            <div class="bg-gray-800 text-white rounded-lg p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <button id="mes-anterior" class="text-gray-400 focus:outline-none" aria-label="Mes anterior">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="mes" class="text-sm">enero de 2025</span>
+                    <button id="mes-siguiente" class="text-gray-400 focus:outline-none" aria-label="Mes siguiente">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Días de la semana y calendario -->
+                <div id="dias" class="grid grid-cols-7 gap-2 text-center text-sm"></div>
+            </div>
+        </div>
+
+        <!-- Tabla de Recordatorios -->
+        <div class="bg-gray-700 rounded-lg shadow-lg p-4 mt-4">
+            <h2 class="text-white text-lg font-semibold mb-2">Recordatorios Almacenados</h2>
+            <table class="w-full table-auto">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 text-white">Día</th>
+                        <th class="px-4 py-2 text-white">Mes</th>
+                        <th class="px-4 py-2 text-white">Detalle</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-recordatorios" class="text-gray-300">
+                    <!-- Aquí se llenarán los recordatorios -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center hidden">
+        <div class="bg-white bg-opacity-50 backdrop-blur-lg rounded-lg shadow-lg p-4 w-full max-w-sm">
+            <div class="flex justify-between items-center mb-4">
+                <span id="modal-fecha" class="text-white">17 de enero de 2025</span>
+                <button id="modal-cerrar" class="text-gray-500 focus:outline-none" aria-label="Cerrar modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <label for="modal-input" class="block text-white">Recordatorio:</label>
+                <input type="text" id="modal-input" class="w-full border border-gray-300 rounded-lg p-2 mt-1">
+            </div>
+            <div class="flex justify-end">
+                <button id="modal-guardar" class="bg-gray-800 text-white rounded-lg px-4 py-2">Guardar</button>
+            </div>
+            <div class="mt-4">
+                <ul id="recordatorios" class="list-disc pl-5"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Actualizar la fecha actual en el encabezado
+        document.addEventListener('DOMContentLoaded', function () {
+            const fechaActualElemento = document.getElementById('fecha-actual');
+            const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+            const mesTexto = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+            
+            let fecha = new Date();
+            let diaActual = diasSemana[fecha.getDay()];
+            let diaDelMes = fecha.getDate();
+            let mesActual = mesTexto[fecha.getMonth()];
+            let anioActual = fecha.getFullYear();
+
+            fechaActualElemento.textContent = `${diaActual}, ${diaDelMes} de ${mesActual} de ${anioActual}`;
+        });
+    </script>
+</body>
+</html>
