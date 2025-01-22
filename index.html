@@ -142,22 +142,49 @@
             // Mostrar tabla con todos los recordatorios
             function mostrarTablaRecordatorios() {
                 tablaRecordatorios.innerHTML = ''; // Limpiar tabla existente
+                const fechaActual = new Date();
 
+                // Obtener todos los recordatorios en un solo array con sus fechas para ordenarlos
+                const todosLosRecordatorios = [];
                 Object.keys(recordatorios).forEach(fechaClave => {
                     const recordatoriosDelDia = recordatorios[fechaClave];
                     const [dia, mes, anio] = fechaClave.split('-');
+
+                    // Crear objeto de fecha del recordatorio
+                    const fechaRecordatorio = new Date(anio, mes, dia);
+
+                    // Para cada recordatorio, agregarlo con su fecha
                     recordatoriosDelDia.forEach(recordatorio => {
-                        const row = document.createElement('tr');
-                        row.classList.add('border-b', 'border-gray-600');
-
-                        row.innerHTML = `
-                            <td class="px-4 py-2 text-white">${dia}</td>
-                            <td class="px-4 py-2 text-white">${mesTexto[parseInt(mes)]}</td>
-                            <td class="px-4 py-2 text-white">${recordatorio}</td>
-                        `;
-
-                        tablaRecordatorios.appendChild(row);
+                        todosLosRecordatorios.push({
+                            fecha: fechaRecordatorio,
+                            dia: dia,
+                            mes: mes,
+                            anio: anio,
+                            detalle: recordatorio
+                        });
                     });
+                });
+
+                // Ordenar los recordatorios por fecha (de menor a mayor)
+                todosLosRecordatorios.sort((a, b) => a.fecha - b.fecha);
+
+                // Mostrar los recordatorios ordenados
+                todosLosRecordatorios.forEach(recordatorio => {
+                    const row = document.createElement('tr');
+                    const esVencido = new Date() > recordatorio.fecha; // Verificar si ya venció el recordatorio
+
+                    row.classList.add('border-b', 'border-gray-600');
+                    if (esVencido) {
+                        row.classList.add('bg-red-900'); // Estilo para recordatorios vencidos
+                    }
+
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-white">${recordatorio.dia}</td>
+                        <td class="px-4 py-2 text-white">${mesTexto[parseInt(recordatorio.mes)]}</td>
+                        <td class="px-4 py-2 text-white">${recordatorio.detalle}</td>
+                    `;
+
+                    tablaRecordatorios.appendChild(row);
                 });
             }
 
