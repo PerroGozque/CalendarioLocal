@@ -139,54 +139,71 @@
                 });
             }
 
-            // Mostrar tabla con todos los recordatorios
             function mostrarTablaRecordatorios() {
-                tablaRecordatorios.innerHTML = ''; // Limpiar tabla existente
-                const fechaActual = new Date();
+    tablaRecordatorios.innerHTML = ''; // Limpiar tabla existente
+    const fechaActual = new Date();
 
-                // Obtener todos los recordatorios en un solo array con sus fechas para ordenarlos
-                const todosLosRecordatorios = [];
-                Object.keys(recordatorios).forEach(fechaClave => {
-                    const recordatoriosDelDia = recordatorios[fechaClave];
-                    const [dia, mes, anio] = fechaClave.split('-');
+    // Obtener todos los recordatorios en un solo array con sus fechas para ordenarlos
+    const todosLosRecordatorios = [];
+    Object.keys(recordatorios).forEach(fechaClave => {
+        const recordatoriosDelDia = recordatorios[fechaClave];
+        const [dia, mes, anio] = fechaClave.split('-');
 
-                    // Crear objeto de fecha del recordatorio
-                    const fechaRecordatorio = new Date(anio, mes, dia);
+        // Crear objeto de fecha del recordatorio
+        const fechaRecordatorio = new Date(anio, mes, dia);
 
-                    // Para cada recordatorio, agregarlo con su fecha
-                    recordatoriosDelDia.forEach(recordatorio => {
-                        todosLosRecordatorios.push({
-                            fecha: fechaRecordatorio,
-                            dia: dia,
-                            mes: mes,
-                            anio: anio,
-                            detalle: recordatorio
-                        });
-                    });
-                });
+        // Para cada recordatorio, agregarlo con su fecha
+        recordatoriosDelDia.forEach(recordatorio => {
+            todosLosRecordatorios.push({
+                fecha: fechaRecordatorio,
+                dia: dia,
+                mes: mes,
+                anio: anio,
+                detalle: recordatorio
+            });
+        });
+    });
 
-                // Ordenar los recordatorios por fecha (de menor a mayor)
-                todosLosRecordatorios.sort((a, b) => a.fecha - b.fecha);
+    // Ordenar los recordatorios por fecha (de menor a mayor)
+    todosLosRecordatorios.sort((a, b) => a.fecha - b.fecha);
 
-                // Mostrar los recordatorios ordenados
-                todosLosRecordatorios.forEach(recordatorio => {
-                    const row = document.createElement('tr');
-                    const esVencido = new Date() > recordatorio.fecha; // Verificar si ya venció el recordatorio
+    // Mostrar los recordatorios ordenados
+    todosLosRecordatorios.forEach(recordatorio => {
+        const row = document.createElement('tr');
+        const esVencido = new Date() > recordatorio.fecha; // Verificar si ya venció el recordatorio
+        const esHoy = fechaActual.toDateString() === recordatorio.fecha.toDateString(); // Verificar si es hoy
+        const esDiaAnterior = new Date(fechaActual.getTime() - 24 * 60 * 60 * 1000).toDateString() === recordatorio.fecha.toDateString(); // Verificar si es el día anterior
 
-                    row.classList.add('border-b', 'border-gray-600');
-                    if (esVencido) {
-                        row.classList.add('bg-red-900'); // Estilo para recordatorios vencidos
-                    }
+        row.classList.add('border-b', 'border-gray-600');
 
-                    row.innerHTML = `
-                        <td class="px-4 py-2 text-white">${recordatorio.dia}</td>
-                        <td class="px-4 py-2 text-white">${mesTexto[parseInt(recordatorio.mes)]}</td>
-                        <td class="px-4 py-2 text-white">${recordatorio.detalle}</td>
-                    `;
+        // Crear el punto que se añadirá en la fila
+        const punto = document.createElement('div');
+        punto.style.width = '8px'; // Tamaño del punto
+        punto.style.height = '8px';
+        punto.style.borderRadius = '50%'; // Hacerlo circular
+        punto.style.marginRight = '10px'; // Espacio entre el punto y el texto
 
-                    tablaRecordatorios.appendChild(row);
-                });
-            }
+        // Aplicar colores según la condición
+        if (esHoy) {
+            punto.style.backgroundColor = 'green'; // Punto verde para hoy
+        } else if (esDiaAnterior) {
+            punto.style.backgroundColor = 'yellow'; // Punto amarillo para el día anterior
+        } else if (esVencido) {
+            punto.style.backgroundColor = 'red'; // Punto rojo para vencidos
+        }
+
+        row.innerHTML = `
+            <td class="px-4 py-2 text-white flex items-center">
+                ${punto.outerHTML} ${recordatorio.dia}
+            </td>
+            <td class="px-4 py-2 text-white">${mesTexto[parseInt(recordatorio.mes)]}</td>
+            <td class="px-4 py-2 text-white">${recordatorio.detalle}</td>
+        `;
+
+        tablaRecordatorios.appendChild(row);
+    });
+}
+
 
             // Cambiar al mes siguiente
             document.getElementById('mes-siguiente').addEventListener('click', function () {
