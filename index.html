@@ -26,7 +26,7 @@
                 10: [3, 17],        // Noviembre
                 11: [8, 25]         // Diciembre
             };
-
+            
             const mesElemento = document.getElementById('mes');
             const diasElemento = document.getElementById('dias');
             const modal = document.getElementById('modal');
@@ -140,72 +140,103 @@
             }
 
             function mostrarTablaRecordatorios() {
-    tablaRecordatorios.innerHTML = ''; // Limpiar tabla existente
-    const fechaActual = new Date();
+                tablaRecordatorios.innerHTML = ''; // Limpiar tabla existente
+                const fechaActual = new Date();
 
-    // Obtener todos los recordatorios en un solo array con sus fechas para ordenarlos
-    const todosLosRecordatorios = [];
-    Object.keys(recordatorios).forEach(fechaClave => {
-        const recordatoriosDelDia = recordatorios[fechaClave];
-        const [dia, mes, anio] = fechaClave.split('-');
+                // Obtener todos los recordatorios en un solo array con sus fechas para ordenarlos
+                const todosLosRecordatorios = [];
+                Object.keys(recordatorios).forEach(fechaClave => {
+                    const recordatoriosDelDia = recordatorios[fechaClave];
+                    const [dia, mes, anio] = fechaClave.split('-');
 
-        // Crear objeto de fecha del recordatorio
-        const fechaRecordatorio = new Date(anio, mes, dia);
+                    // Crear objeto de fecha del recordatorio
+                    const fechaRecordatorio = new Date(anio, mes, dia);
 
-        // Para cada recordatorio, agregarlo con su fecha
-        recordatoriosDelDia.forEach(recordatorio => {
-            todosLosRecordatorios.push({
-                fecha: fechaRecordatorio,
-                dia: dia,
-                mes: mes,
-                anio: anio,
-                detalle: recordatorio
-            });
-        });
-    });
+                    // Para cada recordatorio, agregarlo con su fecha
+                    recordatoriosDelDia.forEach((recordatorio, index) => {
+                        todosLosRecordatorios.push({
+                            fecha: fechaRecordatorio,
+                            dia: dia,
+                            mes: mes,
+                            anio: anio,
+                            detalle: recordatorio,
+                            index: index,
+                            fechaClave: fechaClave
+                        });
+                    });
+                });
 
-    // Ordenar los recordatorios por fecha (de menor a mayor)
-    todosLosRecordatorios.sort((a, b) => a.fecha - b.fecha);
+                // Ordenar los recordatorios por fecha (de menor a mayor)
+                todosLosRecordatorios.sort((a, b) => a.fecha - b.fecha);
 
-    // Mostrar los recordatorios ordenados
-    todosLosRecordatorios.forEach(recordatorio => {
-    const row = document.createElement('tr');
-    const esVencido = new Date() > recordatorio.fecha; // Verificar si el recordatorio ya venció
-    const esHoy = fechaActual.toDateString() === recordatorio.fecha.toDateString(); // Verificar si es hoy
-    const esFuturo = new Date() < recordatorio.fecha; // Verificar si es un recordatorio para el futuro
+                // Mostrar los recordatorios ordenados
+                todosLosRecordatorios.forEach(recordatorio => {
+                    const row = document.createElement('tr');
+                    const esVencido = new Date() > recordatorio.fecha; // Verificar si el recordatorio ya venció
+                    const esHoy = fechaActual.toDateString() === recordatorio.fecha.toDateString(); // Verificar si es hoy
+                    const esFuturo = new Date() < recordatorio.fecha; // Verificar si es un recordatorio para el futuro
 
-    row.classList.add('border-b', 'border-gray-600');
+                    row.classList.add('border-b', 'border-gray-600');
 
-    // Crear el punto que se añadirá en la fila
-    const punto = document.createElement('div');
-    punto.style.width = '8px'; // Tamaño del punto
-    punto.style.height = '8px';
-    punto.style.borderRadius = '50%'; // Hacerlo circular
-    punto.style.marginRight = '10px'; // Espacio entre el punto y el texto
+                    // Crear el punto que se añadirá en la fila
+                    const punto = document.createElement('div');
+                    punto.style.width = '8px'; // Tamaño del punto
+                    punto.style.height = '8px';
+                    punto.style.borderRadius = '50%'; // Hacerlo circular
+                    punto.style.marginRight = '10px'; // Espacio entre el punto y el texto
 
-    // Aplicar colores según la condición
-    if (esHoy) {
-        punto.style.backgroundColor = 'green'; // Punto verde para hoy
-    } else if (esFuturo) {
-        punto.style.backgroundColor = 'yellow'; // Punto amarillo para el futuro
-    } else if (esVencido) {
-        punto.style.backgroundColor = 'red'; // Punto rojo para vencidos
-    }
+                    // Aplicar colores según la condición
+                    if (esHoy) {
+                        punto.style.backgroundColor = 'green'; // Punto verde para hoy
+                    } else if (esFuturo) {
+                        punto.style.backgroundColor = 'yellow'; // Punto amarillo para el futuro
+                    } else if (esVencido) {
+                        punto.style.backgroundColor = 'red'; // Punto rojo para vencidos
+                    }
 
-    row.innerHTML = `
-        <td class="px-4 py-2 text-white flex items-center">
-            ${punto.outerHTML} ${recordatorio.dia}
-        </td>
-        <td class="px-4 py-2 text-white">${mesTexto[parseInt(recordatorio.mes)]}</td>
-        <td class="px-4 py-2 text-white">${recordatorio.detalle}</td>
-    `;
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-white flex items-center">
+                            ${punto.outerHTML} ${recordatorio.dia}
+                        </td>
+                        <td class="px-4 py-2 text-white">${mesTexto[parseInt(recordatorio.mes)]}</td>
+                        <td class="px-4 py-2 text-white">${recordatorio.detalle}</td>
+                        <td class="px-4 py-2 text-white">
 
-    tablaRecordatorios.appendChild(row);
-});
+                            <button class="text-red-500 focus:outline-none eliminar-recordatorio" data-fecha="${recordatorio.fechaClave}" data-index="${recordatorio.index}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
 
-}
+                    tablaRecordatorios.appendChild(row);
+                });
 
+                // Añadir eventos para eliminar recordatorios
 
+                document.querySelectorAll('.eliminar-recordatorio').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const fechaClave = this.getAttribute('data-fecha');
+                        const index = this.getAttribute('data-index');
+                        const confirmModal = document.getElementById('confirmModal');
+                        const confirmYes = document.getElementById('confirmYes');
+                        const confirmNo = document.getElementById('confirmNo');
+
+                        confirmModal.classList.remove('hidden'); 
+
+                        confirmYes.onclick = function () {
+                            recordatorios[fechaClave].splice(index, 1);
+                            guardarRecordatorios(); // Actualizar el localStorage
+                            mostrarTablaRecordatorios(); // Actualizar la tabla
+                            generarCalendario(); // Actualizar el calendario
+                            confirmModal.classList.add('hidden'); 
+                        };
+
+                        confirmNo.onclick = function () {
+                            confirmModal.classList.add('hidden');
+                        };
+                    });
+                });
+            }
 
             // Cambiar al mes siguiente
             document.getElementById('mes-siguiente').addEventListener('click', function () {
@@ -220,7 +251,7 @@
             });
 
             // Inicializar el calendario y la tabla
-            generarCalendario(); 
+            generarCalendario();
             mostrarTablaRecordatorios();
 
             // Cerrar el modal
@@ -235,7 +266,7 @@
                 const nuevoRecordatorio = modalInput.value.trim();
 
                 if (nuevoRecordatorio === '') {
-                    alert("El recordatorio no puede estar vacío");
+                    alert("Digite un recordatorio antes de guardar!");
                     return;
                 }
 
@@ -251,17 +282,38 @@
             });
         });
     </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-y: auto; /* Permitir desplazamiento vertical */
+            background: linear-gradient(120deg, #000428, #a8adb1);
+            background-size: 400% 400%;
+            animation: gradientAnimation 15s ease infinite;
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        #recordatorios {
+        max-height: 15rem; /* Limitar la altura a 3 elementos aproximadamente */
+        overflow-y: auto; /* Permitir desplazamiento vertical */
+    }
+    </style>
 </head>
 
 <body class="bg-gray-600 flex justify-center h-screen">
     <div class="relative w-full md:max-w-sm">
         <!-- Título y Fecha Actual -->
         <div class="text-center mb-4">
-            <p class="text-lg text-gray-300 font-semibold">
-                Calendario Recordatorios
+            <p class="text-lg text-gray-200 font-semibold">
+                CALENDARIO RECORDATORIOS
             </p>
+
             <!-- Día y Fecha actuales -->
-            <p id="fecha-actual" class="text-sm text-gray-300"></p>
+            <p id="fecha-actual" class="text-xl text-gray-300"></p>
         </div>
 
         <!-- Calendario Principal -->
@@ -284,7 +336,7 @@
         </div>
 
         <!-- Tabla de Recordatorios -->
-        <div class="bg-gray-700 rounded-lg shadow-lg p-4 mt-4">
+        <div class="bg-gray-700 rounded-lg shadow-lg p-4 mt-4 overflow-y-auto max-h-screen">
             <h2 class="text-white text-lg font-semibold mb-2">Recordatorios Almacenados</h2>
             <table class="w-full table-auto">
                 <thead>
@@ -303,22 +355,33 @@
 
     <!-- Modal -->
     <div id="modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center hidden">
-        <div class="bg-white bg-opacity-50 backdrop-blur-lg rounded-lg shadow-lg p-4 w-full max-w-sm">
+        <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg shadow-lg p-4 w-full max-w-sm">
             <div class="flex justify-between items-center mb-4">
-                <span id="modal-fecha" class="text-white">17 de enero de 2025</span>
-                <button id="modal-cerrar" class="text-gray-500 focus:outline-none" aria-label="Cerrar modal">
+                <span id="modal-fecha" class="text-white">DD de MM de AAAA</span>
+                <button id="modal-cerrar" class="text-gray-300 focus:outline-none" aria-label="Cerrar modal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="mb-4">
                 <label for="modal-input" class="block text-white">Recordatorio:</label>
-                <input type="text" id="modal-input" class="w-full border border-gray-300 rounded-lg p-2 mt-1">
+                <input type="text" id="modal-input" class="w-full border border-gray-300 rounded-lg p-2 mt-1" placeholder="Escriba un recordatorio aqui... ">
             </div>
             <div class="flex justify-end">
-                <button id="modal-guardar" class="bg-gray-800 text-white rounded-lg px-4 py-2">Guardar</button>
+                <button id="modal-guardar" class="bg-gray-800 text-white rounded-lg px-4 py-2">Agregar</button>
             </div>
             <div class="mt-4">
                 <ul id="recordatorios" class="list-disc pl-5"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación de eliminación -->
+    <div id="confirmModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white p-6 rounded shadow-lg">
+            <p class="mb-4">¿Desea eliminar este recordatorio?</p>
+            <div class="flex justify-end">
+                <button id="confirmYes" class="bg-red-500 text-white px-4 py-2 rounded mr-2">SI</button>
+                <button id="confirmNo" class="bg-gray-500 text-white px-4 py-2 rounded">NO</button>
             </div>
         </div>
     </div>
