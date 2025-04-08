@@ -1,0 +1,21 @@
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow-y: auto; /* Permitir desplazamiento vertical */
+    
+}
+
+@keyframes gradientAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+#recordatorios {
+max-height: 15rem; /* Limitar la altura a 3 elementos aproximadamente */
+overflow-y: auto; /* Permitir desplazamiento vertical */
+}
+
+#recordatorios li {
+    margin-bottom: 10px; /* Ajusta el valor para definir el espacio entre los elementos */
+}
