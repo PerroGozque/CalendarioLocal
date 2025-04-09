@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let recordatorioParaEditar = null; // Variable para guardar referencia al editar
 
     // *** NUEVA CONSTANTE PARA LA API BASE URL ***
-    const API_BASE_URL = 'https://apicalendarioloca.onrender.com/api/actividades';
+    const API_BASE_URL = 'https://apicalendarioloca.onrender.com/api/actividades'; 
 
     // --- Funciones Principales ---
 
