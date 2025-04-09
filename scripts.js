@@ -18,8 +18,6 @@ document.addEventListener('DOMContentLoaded', function () {
        10: [3, 17],     // Noviembre: Todos los Santos, Independencia Cartagena (Varían, Lunes siguientes)
        11: [8, 25]      // Diciembre: Inmaculada Concepción, Navidad
     };
-    // NOTA: Los días festivos que caen en Lunes siguiente requieren lógica adicional si se quiere precisión absoluta año a año.
-    // Este ejemplo marca el día específico o un Lunes típico.
 
     // --- Selección de Elementos del DOM ---
     const mesElemento = document.getElementById('mes');
@@ -39,9 +37,43 @@ document.addEventListener('DOMContentLoaded', function () {
     const confirmEdit = document.getElementById('confirmEdit');
     const cancelEdit = document.getElementById('cancelEdit');
     const botonExportarJson = document.getElementById('exportar-json'); // Botón de exportar
+    const botonExportarApi = document.getElementById('exportar-api-btn');
+    const apiExportAllResult = document.getElementById('apiExportAllResult');
+
+    // *** NUEVOS ELEMENTOS PARA EL MODAL API ***
+    const apiModal = document.getElementById('apiModal');
+    const apiModalCerrar = document.getElementById('apiModalCerrar');
+    const botonExportarLocalJson = document.getElementById('exportar-local-json-btn'); // Botón dentro del modal API
+
+    // GET ALL
+    const apiGetAllBtn = document.getElementById('apiGetAllBtn');
+    const apiGetAllResult = document.getElementById('apiGetAllResult');
+    // CREATE
+    const apiCreateDateInput = document.getElementById('apiCreateDateInput');
+    const apiCreateActivitiesInput = document.getElementById('apiCreateActivitiesInput');
+    const apiCreateBtn = document.getElementById('apiCreateBtn');
+    const apiCreateResult = document.getElementById('apiCreateResult');
+    // GET BY ID
+    const apiGetIdInput = document.getElementById('apiGetIdInput');
+    const apiGetByIdBtn = document.getElementById('apiGetByIdBtn');
+    const apiGetByIdResult = document.getElementById('apiGetByIdResult');
+    // UPDATE
+    const apiUpdateIdInput = document.getElementById('apiUpdateIdInput');
+    const apiUpdateDateInput = document.getElementById('apiUpdateDateInput');
+    const apiUpdateActivitiesInput = document.getElementById('apiUpdateActivitiesInput');
+    const apiUpdateBtn = document.getElementById('apiUpdateBtn');
+    const apiUpdateResult = document.getElementById('apiUpdateResult');
+    // DELETE
+    const apiDeleteIdInput = document.getElementById('apiDeleteIdInput');
+    const apiDeleteBtn = document.getElementById('apiDeleteBtn');
+    const apiDeleteResult = document.getElementById('apiDeleteResult');
+    // *** FIN NUEVOS ELEMENTOS ***
 
     let recordatorios = cargarRecordatorios();
     let recordatorioParaEditar = null; // Variable para guardar referencia al editar
+
+    // *** NUEVA CONSTANTE PARA LA API BASE URL ***
+    const API_BASE_URL = 'http://localhost:3005/api/actividades';
 
     // --- Funciones Principales ---
 
@@ -174,7 +206,6 @@ document.addEventListener('DOMContentLoaded', function () {
              generarCalendario();
         });
     }
-
 
     function mostrarTablaRecordatorios() {
         tablaRecordatorios.innerHTML = '';
@@ -327,7 +358,6 @@ document.addEventListener('DOMContentLoaded', function () {
          inputDetalle.focus();
      }
 
-
     function mostrarConfirmacionEliminar(fechaClave, index, callbackConfirmacion) {
         // fechaClave sigue siendo D-M0-YYYY
          if (!recordatorios[fechaClave] || !Array.isArray(recordatorios[fechaClave]) || index < 0 || index >= recordatorios[fechaClave].length) {
@@ -361,28 +391,20 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
-
-     // **** INICIO: MODIFICADA FUNCIÓN PARA EXPORTAR JSON (CORRIGE EL MES) ****
-     function exportarRecordatoriosJson() {
-         const datosParaExportar = Object.entries(recordatorios)
+    // **** INICIO: MODIFICADA FUNCIÓN PARA EXPORTAR JSON (AHORA SE LLAMA DESDE EL MODAL API) ****
+    function exportarRecordatoriosJsonLocal() {
+        const datosParaExportar = Object.entries(recordatorios)
              .map(([fechaClave, actividades]) => {
-                 // fechaClave está en formato D-M0-YYYY (M0 = mes 0-based)
-
-                 // Validar que 'actividades' sea un array
                  if (!Array.isArray(actividades)) {
                      console.warn(`Formato de actividades inválido para ${fechaClave}. Se omitirá.`);
                      return null;
                  }
-
                  const actividadesValidas = actividades.filter(act => act && typeof act === 'string' && act.trim() !== '');
-                 if (actividadesValidas.length === 0) {
-                     return null; // No exportar fechas sin actividades válidas
-                 }
+                 if (actividadesValidas.length === 0) return null;
 
-                 // Parsear la fechaClave para ajustar el mes
                  const partes = fechaClave.split('-');
                  if (partes.length !== 3) {
-                      console.warn(`Formato de fechaClave inválido encontrado durante la exportación: ${fechaClave}. Se omitirá.`);
+                      console.warn(`Formato de fechaClave inválido: ${fechaClave}. Se omitirá.`);
                       return null;
                  }
                  const [diaStr, mesCeroStr, anioStr] = partes;
@@ -391,26 +413,21 @@ document.addEventListener('DOMContentLoaded', function () {
                  const anio = parseInt(anioStr, 10);
 
                  if (isNaN(dia) || isNaN(mesCero) || isNaN(anio) || mesCero < 0 || mesCero > 11) {
-                     console.warn(`Componentes de fecha inválidos en clave durante la exportación: ${fechaClave}. Se omitirá.`);
+                     console.warn(`Componentes de fecha inválidos en clave: ${fechaClave}. Se omitirá.`);
                      return null;
                  }
-
-                 // ****** ¡LA CORRECCIÓN CLAVE! ******
-                 // Sumar 1 al mes (0-based) para obtener el mes real (1-based)
-                 const mesCorrecto = mesCero + 1;
-
-                 // Crear la cadena de fecha en el formato deseado para el JSON (D-M-YYYY)
+                 const mesCorrecto = mesCero + 1; // Convertir a mes 1-based para JSON
                  const fechaFormateadaParaJson = `${dia}-${mesCorrecto}-${anio}`;
 
                  return {
-                     fecha: fechaFormateadaParaJson, // Usar la fecha con el mes corregido
+                     fecha: fechaFormateadaParaJson,
                      actividades: actividadesValidas
                  };
              })
-             .filter(item => item !== null); // Filtrar los nulls resultantes de validaciones
+             .filter(item => item !== null);
 
          if (datosParaExportar.length === 0) {
-             alert("No hay recordatorios válidos para exportar.");
+             alert("No hay recordatorios locales válidos para exportar.");
              return;
          }
 
@@ -422,15 +439,352 @@ document.addEventListener('DOMContentLoaded', function () {
 
          const ahora = new Date();
          const fechaArchivo = `${ahora.getFullYear()}${(ahora.getMonth() + 1).toString().padStart(2, '0')}${ahora.getDate().toString().padStart(2, '0')}`;
-         a.download = `recordatorios_${fechaArchivo}.json`;
+         a.download = `recordatorios_locales_${fechaArchivo}.json`;
 
          document.body.appendChild(a);
          a.click();
          document.body.removeChild(a);
          URL.revokeObjectURL(url);
-     }
-     // **** FIN: MODIFICADA FUNCIÓN PARA EXPORTAR JSON ****
 
+        // Opcional: Cerrar modal API después de exportar localmente
+        // apiModal.classList.add('hidden');
+    }
+    // **** FIN: FUNCIÓN PARA EXPORTAR JSON LOCAL ****
+
+    // *** INICIO: NUEVAS FUNCIONES PARA INTERACCIÓN CON API ***
+
+    // Helper para mostrar resultados en los <pre> del modal API
+    function displayApiResult(element, data, isError = false) {
+        if (isError) {
+            element.classList.add('text-red-400');
+            element.classList.remove('text-green-400');
+            // Intenta mostrar el mensaje de error del backend si existe
+            let errorMessage = "Error desconocido";
+            if (typeof data === 'string') {
+                errorMessage = data;
+            } else if (data instanceof Error) {
+                 errorMessage = data.message;
+            } else if (data && typeof data === 'object' && data.error) {
+                 errorMessage = data.error;
+            } else {
+                 try { errorMessage = JSON.stringify(data, null, 2); } catch { /* Ignorar */ }
+            }
+             element.textContent = `Error: ${errorMessage}`;
+        } else {
+            element.classList.remove('text-red-400');
+            element.classList.add('text-green-400'); // O un color neutral si prefieres
+            if (typeof data === 'string') {
+                element.textContent = data;
+            } else if (data === null || data === undefined) {
+                element.textContent = "Operación exitosa (Sin contenido)"; // Para DELETE 204
+            }
+            else {
+                element.textContent = JSON.stringify(data, null, 2);
+            }
+        }
+    }
+
+    // Helper genérico para fetch
+    async function apiFetch(url, options = {}) {
+        try {
+            const defaultHeaders = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            };
+            const config = {
+                ...options,
+                headers: {
+                    ...defaultHeaders,
+                    ...options.headers,
+                },
+            };
+
+            const response = await fetch(url, config);
+
+            // Handle DELETE 204 No Content
+            if (response.status === 204) {
+                return { success: true, data: null }; // Indicate success with no data
+            }
+
+            const responseData = await response.json();
+
+            if (!response.ok) {
+                 // Usar el mensaje de error del backend si está disponible
+                 const errorMessage = responseData.error || responseData.message || `HTTP error! status: ${response.status}`;
+                 // Lanzar un error estructurado
+                 const error = new Error(errorMessage);
+                 error.status = response.status;
+                 error.data = responseData; // Adjuntar la respuesta completa por si acaso
+                 throw error;
+             }
+
+            return { success: true, data: responseData };
+
+        } catch (error) {
+            console.error('API Fetch Error:', error);
+             // Devolver un objeto de error consistente
+             return { success: false, error: error.message || 'Error de red o al procesar la respuesta', status: error.status, data: error.data };
+        }
+    }
+
+    // 1. GET All
+    async function handleGetAllActivities() {
+        apiGetAllResult.textContent = 'Cargando...';
+        apiGetAllResult.classList.remove('text-red-400', 'text-green-400');
+        const result = await apiFetch(API_BASE_URL);
+        if (result.success) {
+            displayApiResult(apiGetAllResult, result.data);
+        } else {
+            displayApiResult(apiGetAllResult, result.error || result.data, true);
+        }
+    }
+
+    // 2. POST Create
+    async function handleCreateActivity() {
+        const fecha = apiCreateDateInput.value.trim();
+        const actividadesRaw = apiCreateActivitiesInput.value.trim();
+
+        // Validación básica
+        if (!fecha || !actividadesRaw) {
+            displayApiResult(apiCreateResult, "La fecha y las actividades son obligatorias.", true);
+            return;
+        }
+        // Validación simple de formato de fecha (podría ser más robusta)
+        if (!/^\d{1,2}-\d{1,2}-\d{4}$/.test(fecha)) {
+             displayApiResult(apiCreateResult, "Formato de fecha inválido. Use D-M-AAAA (ej: 8-4-2025).", true);
+             return;
+        }
+
+        const actividadesArray = actividadesRaw.split('\n')
+                                          .map(line => line.trim())
+                                          .filter(line => line !== '');
+
+        if (actividadesArray.length === 0) {
+            displayApiResult(apiCreateResult, "Debe ingresar al menos una actividad.", true);
+            return;
+        }
+
+        const data = { fecha, actividades: actividadesArray };
+        apiCreateResult.textContent = 'Creando...';
+        apiCreateResult.classList.remove('text-red-400', 'text-green-400');
+        const result = await apiFetch(API_BASE_URL, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+
+        if (result.success) {
+            displayApiResult(apiCreateResult, result.data);
+            apiCreateDateInput.value = ''; // Limpiar campos tras éxito
+            apiCreateActivitiesInput.value = '';
+            // Opcional: Recargar la lista completa para ver el nuevo item
+            // handleGetAllActivities();
+        } else {
+            displayApiResult(apiCreateResult, result.error || result.data, true);
+        }
+    }
+
+    // 3. GET By ID
+    async function handleGetActivityById() {
+        const id = apiGetIdInput.value.trim();
+        if (!id) {
+            displayApiResult(apiGetByIdResult, "Debe ingresar un ID.", true);
+            return;
+        }
+        apiGetByIdResult.textContent = 'Buscando...';
+        apiGetByIdResult.classList.remove('text-red-400', 'text-green-400');
+        const result = await apiFetch(`${API_BASE_URL}/${id}`);
+        if (result.success) {
+            displayApiResult(apiGetByIdResult, result.data);
+        } else {
+            displayApiResult(apiGetByIdResult, result.error || result.data, true);
+        }
+    }
+
+    // 4. PUT Update
+    async function handleUpdateActivity() {
+        const id = apiUpdateIdInput.value.trim();
+        const fecha = apiUpdateDateInput.value.trim();
+        const actividadesRaw = apiUpdateActivitiesInput.value.trim();
+
+        if (!id) {
+            displayApiResult(apiUpdateResult, "Debe ingresar el ID de la actividad a actualizar.", true);
+            return;
+        }
+        // Al menos uno de los campos a actualizar debe tener valor
+        if (!fecha && !actividadesRaw) {
+             displayApiResult(apiUpdateResult, "Debe ingresar una nueva fecha o nuevas actividades para actualizar.", true);
+             return;
+        }
+        // Validación de fecha si se proporciona
+        if (fecha && !/^\d{1,2}-\d{1,2}-\d{4}$/.test(fecha)) {
+             displayApiResult(apiUpdateResult, "Formato de fecha inválido. Use D-M-AAAA (ej: 8-4-2025).", true);
+             return;
+        }
+
+        const dataToUpdate = {};
+        if (fecha) {
+            dataToUpdate.fecha = fecha;
+        }
+        if (actividadesRaw) {
+            const actividadesArray = actividadesRaw.split('\n')
+                                              .map(line => line.trim())
+                                              .filter(line => line !== '');
+            if (actividadesArray.length > 0) {
+                 dataToUpdate.actividades = actividadesArray;
+            } else if (actividadesRaw) { // Si escribió algo pero eran solo espacios
+                 displayApiResult(apiUpdateResult, "Si actualiza actividades, debe ingresar al menos una válida.", true);
+                 return;
+            }
+        }
+
+         if (Object.keys(dataToUpdate).length === 0) {
+             displayApiResult(apiUpdateResult, "No hay datos válidos para actualizar.", true);
+             return;
+         }
+
+        apiUpdateResult.textContent = 'Actualizando...';
+        apiUpdateResult.classList.remove('text-red-400', 'text-green-400');
+        const result = await apiFetch(`${API_BASE_URL}/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(dataToUpdate),
+        });
+
+        if (result.success) {
+            displayApiResult(apiUpdateResult, result.data);
+            // Opcional: Recargar la lista o el item específico para ver cambios
+            // handleGetAllActivities();
+            // handleGetActivityById(); // (necesitaría el ID)
+        } else {
+            displayApiResult(apiUpdateResult, result.error || result.data, true);
+        }
+    }
+
+    // 5. DELETE By ID
+    async function handleDeleteActivity() {
+        const id = apiDeleteIdInput.value.trim();
+        if (!id) {
+            displayApiResult(apiDeleteResult, "Debe ingresar un ID para eliminar.", true);
+            return;
+        }
+
+        // Confirmación (opcional pero recomendado)
+        if (!confirm(`¿Está seguro de que desea eliminar la actividad con ID: ${id}? Esta acción no se puede deshacer.`)) {
+            displayApiResult(apiDeleteResult, "Eliminación cancelada.", false); // Mensaje neutral
+            apiDeleteResult.classList.remove('text-red-400', 'text-green-400');
+            return;
+        }
+
+        apiDeleteResult.textContent = 'Eliminando...';
+        apiDeleteResult.classList.remove('text-red-400', 'text-green-400');
+        const result = await apiFetch(`${API_BASE_URL}/${id}`, {
+            method: 'DELETE',
+        });
+
+        if (result.success) {
+             // Para 204 No Content, result.data será null
+            displayApiResult(apiDeleteResult, `Actividad con ID ${id} eliminada exitosamente.`);
+            apiDeleteIdInput.value = ''; // Limpiar campo tras éxito
+            // Opcional: Recargar la lista completa
+            // handleGetAllActivities();
+        } else {
+             displayApiResult(apiDeleteResult, result.error || result.data, true);
+        }
+    }
+    async function handleExportLocalToApi() {
+        apiExportAllResult.textContent = 'Iniciando exportación de LocalStorage a API...';
+        apiExportAllResult.classList.remove('text-red-400', 'text-green-400');
+
+        const localRecordatorios = cargarRecordatorios(); // Carga los datos actuales
+
+        if (!localRecordatorios || Object.keys(localRecordatorios).length === 0) {
+            apiExportAllResult.textContent = 'No hay recordatorios en LocalStorage para exportar.';
+            return;
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+        const resultsDetails = [];
+        const totalEntries = Object.keys(localRecordatorios).length;
+        let processedCount = 0;
+
+        // Usamos un bucle for...of con Object.entries para poder usar await dentro
+        for (const [fechaClave, actividadesArray] of Object.entries(localRecordatorios)) {
+            processedCount++;
+            apiExportAllResult.textContent = `Procesando ${processedCount}/${totalEntries}: ${fechaClave}...`;
+
+            // Validar que sea un array y tenga contenido válido
+            if (!Array.isArray(actividadesArray) || actividadesArray.length === 0) {
+                resultsDetails.push(`Skipped ${fechaClave}: No es un array válido o está vacío.`);
+                continue;
+            }
+            const actividadesValidas = actividadesArray.filter(act => typeof act === 'string' && act.trim() !== '');
+            if (actividadesValidas.length === 0) {
+                 resultsDetails.push(`Skipped ${fechaClave}: No contiene actividades válidas.`);
+                 continue;
+            }
+
+            // Parsear y formatear fecha (D-M0-YYYY a D-M-YYYY)
+            const partes = fechaClave.split('-');
+            let fechaApi;
+            if (partes.length === 3) {
+                const dia = partes[0];
+                const mesCero = parseInt(partes[1], 10);
+                const anio = partes[2];
+                if (!isNaN(mesCero) && mesCero >= 0 && mesCero <= 11) {
+                    const mesCorrecto = mesCero + 1; // Convertir a 1-based
+                    fechaApi = `${dia}-${mesCorrecto}-${anio}`;
+                }
+            }
+
+            if (!fechaApi) {
+                 resultsDetails.push(`Skipped ${fechaClave}: Formato de fecha inválido.`);
+                 errorCount++;
+                 continue;
+            }
+
+            // Preparar payload para la API
+            const payload = {
+                fecha: fechaApi,
+                actividades: actividadesValidas
+            };
+
+            // Enviar petición POST a la API
+            const result = await apiFetch(API_BASE_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            // Registrar resultado
+            if (result.success) {
+                successCount++;
+                resultsDetails.push(`Éxito ${fechaApi}: ${JSON.stringify(result.data?._id || 'OK')}`); // Mostrar ID si se devuelve
+            } else {
+                errorCount++;
+                resultsDetails.push(`Error ${fechaApi}: ${result.error || JSON.stringify(result.data)}`);
+            }
+        }
+
+        // Mostrar resumen final
+        let summary = `Exportación completada.\n`;
+        summary += `Total de fechas en LocalStorage: ${totalEntries}\n`;
+        summary += `Enviadas con éxito: ${successCount}\n`;
+        summary += `Errores/Omitidos: ${errorCount}\n\n`;
+        summary += `Detalles:\n${resultsDetails.join('\n')}`;
+
+        apiExportAllResult.textContent = summary;
+        if (errorCount > 0) {
+            apiExportAllResult.classList.add('text-red-400');
+        } else {
+            apiExportAllResult.classList.add('text-green-400');
+        }
+
+         // Opcional: Recargar la lista de la API para ver los nuevos datos
+         // await handleGetAllActivities();
+    }
+
+    
+
+    // *** FIN: NUEVAS FUNCIONES PARA INTERACCIÓN CON API ***
 
     // --- Event Listeners ---
 
@@ -530,7 +884,46 @@ document.addEventListener('DOMContentLoaded', function () {
         recordatorioParaEditar = null;
     });
 
-    botonExportarJson.addEventListener('click', exportarRecordatoriosJson);
+    // *** MODIFICADO: Listener para el botón original de exportar ***
+    botonExportarJson.addEventListener('click', () => {
+        // Ahora abre el modal de API en lugar de exportar directamente
+        apiGetAllResult.textContent = 'Presiona "Cargar Todas" para ver los datos de la API...'; // Resetear mensaje inicial
+        apiGetAllResult.classList.remove('text-red-400', 'text-green-400');
+        // Limpiar otros resultados al abrir
+        apiCreateResult.textContent = '';
+        apiGetByIdResult.textContent = '';
+        apiUpdateResult.textContent = '';
+        apiDeleteResult.textContent = '';
+        apiModal.classList.remove('hidden');
+    });
+
+    // *** NUEVO Listener para el botón de exportar TODO a API ***
+    botonExportarApi.addEventListener('click', handleExportLocalToApi);
+
+    // *** NUEVOS Listeners para el Modal API ***
+    apiModalCerrar.addEventListener('click', () => {
+        apiModal.classList.add('hidden');
+    });
+
+    // Listener para el botón de exportar *localmente* (dentro del modal API)
+    botonExportarLocalJson.addEventListener('click', exportarRecordatoriosJsonLocal);
+
+    // Listeners para los botones de operaciones API
+    apiGetAllBtn.addEventListener('click', handleGetAllActivities);
+    apiCreateBtn.addEventListener('click', handleCreateActivity);
+    apiGetByIdBtn.addEventListener('click', handleGetActivityById);
+    apiUpdateBtn.addEventListener('click', handleUpdateActivity);
+    apiDeleteBtn.addEventListener('click', handleDeleteActivity);
+
+     // Cerrar modal API con tecla Escape
+     document.addEventListener('keydown', (event) => {
+         if (event.key === 'Escape') {
+             // ... (tu código existente para cerrar otros modales) ...
+             if (!apiModal.classList.contains('hidden')) {
+                 apiModal.classList.add('hidden');
+             }
+         }
+     });
 
     // --- Inicialización ---
     generarCalendario();

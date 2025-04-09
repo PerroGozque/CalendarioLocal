@@ -6,12 +6,9 @@
     <title>Calendario</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-
     <link rel="stylesheet" href="styles.css">
     <script src="scripts.js"></script> <!-- Asegúrate que scripts.js se cargue después del HTML o usa DOMContentLoaded -->
-
 </head>
-
 <body class="bg-gray-600 flex justify-center h-screen">
     <div class="relative w-full md:max-w-sm flex flex-col p-4"> <!-- Añadido flex-col y p-4 para mejor layout -->
         <!-- Título y Fecha Actual -->
@@ -70,6 +67,20 @@
         </div>
          <!-- **** FIN NUEVO ELEMENTO **** -->
 
+        <!-- Exportar Localmente y a API 
+        <div class="text-center border-b border-gray-600 pb-6 space-y-4"> 
+            <div>
+                <button id="exportar-local-json-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline text-sm w-full md:w-auto">
+                    <i class="fas fa-download mr-2"></i>Exportar Localmente (JSON)
+                </button>
+                <p class="text-xs text-gray-400 mt-1">Descarga los recordatorios almacenados en este navegador.</p>
+            </div>
+        -->
+
+   
+            <!-- ****** FIN: Nuevo Botón y Resultado ****** -->
+        </div>
+
     </div> <!-- Cierre del div.relative -->
 
     <!-- Modal para agregar recordatorio -->
@@ -117,6 +128,121 @@
             </div>
         </div>
     </div>
+
+    <!-- ****** NUEVO: Modal para Interacción con API ****** -->
+    <div id="apiModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex justify-center items-start hidden z-50 overflow-y-auto pt-10 pb-10">
+        <div class="bg-gray-700 rounded-lg shadow-2xl p-6 w-full max-w-2xl text-white relative">
+            <!-- Encabezado y Botón de Cierre -->
+            <div class="flex justify-between items-center mb-6 border-b border-gray-600 pb-3">
+                <h2 class="text-xl font-semibold">Interactuar con API Externa</h2>
+                <button id="apiModalCerrar" class="text-gray-400 hover:text-white focus:outline-none text-2xl" aria-label="Cerrar modal API">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Contenedor de Operaciones -->
+            <div class="space-y-6">
+
+                <!-- Exportar Localmente -->
+                <div class="text-center border-b border-gray-600 pb-4">
+                     <button id="exportar-local-json-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline text-sm">
+                         <i class="fas fa-download mr-2"></i>Exportar Localmente (JSON)
+                     </button>
+                     <p class="text-xs text-gray-400 mt-1">Descarga los recordatorios almacenados en este navegador.</p>
+                </div>
+                         <!-- ****** NUEVO: Botón y Resultado para Exportar a API ****** -->
+            <div>
+                <button id="exportar-api-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline text-sm w-full md:w-auto">
+                    <i class="fas fa-cloud-upload-alt mr-2"></i>Enviar TODO LocalStorage a API (Crear)
+                </button>
+                <p class="text-xs text-gray-400 mt-1">Envía todos los recordatorios locales a la API externa (usando POST).</p>
+                <label class="block text-sm font-medium text-gray-300 mt-3 mb-1 text-left">Resultado Exportación a API:</label>
+                <pre id="apiExportAllResult" class="bg-gray-900 p-3 rounded text-xs min-h-[60px] overflow-auto whitespace-pre-wrap break-words text-left"></pre>
+            </div>
+
+                <!-- 1. Obtener Todas las Actividades -->
+                <div class="api-section bg-gray-800 p-4 rounded-lg">
+                    <h3 class="font-semibold mb-3 text-lg">1. Obtener Todas las Actividades (API)</h3>
+                    <button id="apiGetAllBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full mb-3">Cargar Todas</button>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Resultado:</label>
+                    <pre id="apiGetAllResult" class="bg-gray-900 p-3 rounded text-xs h-40 overflow-auto whitespace-pre-wrap break-words">Presiona el botón para ver los resultados...</pre>
+                </div>
+
+                <!-- 2. Crear Nueva Actividad -->
+                <div class="api-section bg-gray-800 p-4 rounded-lg">
+                    <h3 class="font-semibold mb-3 text-lg">2. Crear Nueva Actividad (API)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                        <div>
+                            <label for="apiCreateDateInput" class="block text-sm font-medium text-gray-300 mb-1">Fecha (D-M-AAAA):</label>
+                            <input type="text" id="apiCreateDateInput" placeholder="Ej: 25-12-2024" class="w-full p-2 rounded bg-gray-600 border border-gray-500 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="apiCreateActivitiesInput" class="block text-sm font-medium text-gray-300 mb-1">Actividades (una por línea):</label>
+                            <textarea id="apiCreateActivitiesInput" rows="3" placeholder="Actividad 1
+Actividad 2" class="w-full p-2 rounded bg-gray-600 border border-gray-500 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"></textarea>
+                        </div>
+                    </div>
+                    <button id="apiCreateBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full mb-3">Crear Actividad</button>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Resultado:</label>
+                    <pre id="apiCreateResult" class="bg-gray-900 p-3 rounded text-xs min-h-[40px] overflow-auto whitespace-pre-wrap break-words"></pre>
+                </div>
+
+                <!-- 3. Obtener por ID -->
+                <div class="api-section bg-gray-800 p-4 rounded-lg">
+                    <h3 class="font-semibold mb-3 text-lg">3. Obtener Actividad por ID (API)</h3>
+                    <div class="flex gap-4 mb-3 items-end">
+                        <div class="flex-grow">
+                             <label for="apiGetIdInput" class="block text-sm font-medium text-gray-300 mb-1">ID de la Actividad:</label>
+                             <input type="text" id="apiGetIdInput" placeholder="Introduce el _id de MongoDB" class="w-full p-2 rounded bg-gray-600 border border-gray-500 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                        </div>
+                        <button id="apiGetByIdBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded whitespace-nowrap self-end">Obtener por ID</button>
+                    </div>
+                     <label class="block text-sm font-medium text-gray-300 mb-1">Resultado:</label>
+                    <pre id="apiGetByIdResult" class="bg-gray-900 p-3 rounded text-xs min-h-[40px] overflow-auto whitespace-pre-wrap break-words"></pre>
+                </div>
+
+                <!-- 4. Actualizar por ID -->
+                <div class="api-section bg-gray-800 p-4 rounded-lg">
+                    <h3 class="font-semibold mb-3 text-lg">4. Actualizar Actividad por ID (API)</h3>
+                     <div class="mb-3">
+                         <label for="apiUpdateIdInput" class="block text-sm font-medium text-gray-300 mb-1">ID a Actualizar:</label>
+                         <input type="text" id="apiUpdateIdInput" placeholder="Introduce el _id de MongoDB" class="w-full p-2 rounded bg-gray-600 border border-gray-500 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                        <div>
+                            <label for="apiUpdateDateInput" class="block text-sm font-medium text-gray-300 mb-1">Nueva Fecha (D-M-AAAA):</label>
+                            <input type="text" id="apiUpdateDateInput" placeholder="Ej: 25-12-2024" class="w-full p-2 rounded bg-gray-600 border border-gray-500 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="apiUpdateActivitiesInput" class="block text-sm font-medium text-gray-300 mb-1">Nuevas Actividades (una por línea):</label>
+                            <textarea id="apiUpdateActivitiesInput" rows="3" placeholder="Actividad 1 actualizada
+Actividad 2 nueva" class="w-full p-2 rounded bg-gray-600 border border-gray-500 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"></textarea>
+                        </div>
+                    </div>
+                    <button id="apiUpdateBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded w-full mb-3">Actualizar Actividad</button>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Resultado:</label>
+                    <pre id="apiUpdateResult" class="bg-gray-900 p-3 rounded text-xs min-h-[40px] overflow-auto whitespace-pre-wrap break-words"></pre>
+                </div>
+
+                <!-- 5. Eliminar por ID -->
+                <div class="api-section bg-gray-800 p-4 rounded-lg">
+                     <h3 class="font-semibold mb-3 text-lg">5. Eliminar Actividad por ID (API)</h3>
+                     <div class="flex gap-4 mb-3 items-end">
+                         <div class="flex-grow">
+                              <label for="apiDeleteIdInput" class="block text-sm font-medium text-gray-300 mb-1">ID a Eliminar:</label>
+                              <input type="text" id="apiDeleteIdInput" placeholder="Introduce el _id de MongoDB" class="w-full p-2 rounded bg-gray-600 border border-gray-500 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                         </div>
+                         <button id="apiDeleteBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded whitespace-nowrap self-end">Eliminar por ID</button>
+                     </div>
+                     <label class="block text-sm font-medium text-gray-300 mb-1">Resultado:</label>
+                     <pre id="apiDeleteResult" class="bg-gray-900 p-3 rounded text-xs min-h-[40px] overflow-auto whitespace-pre-wrap break-words"></pre>
+                 </div>
+
+            </div> <!-- Fin Contenedor de Operaciones -->
+
+        </div>
+    </div>
+    <!-- ****** FIN: Modal para Interacción con API ****** -->
 
     <script>
         // Actualizar la fecha actual en el encabezado
